@@ -1,0 +1,36 @@
+zerops:
+  - setup: app
+    build:
+      base: nodejs@22
+      buildCommands:
+        - |
+          corepack enable
+          corepack prepare pnpm@10.14.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm prisma generate
+          pnpm build
+      deployFiles:
+        - ./
+      cache: node_modules
+    deploy:
+      readinessCheck:
+        httpGet:
+          port: 3000
+          path: /
+        failureTimeout: 120
+        retryPeriod: 10
+    run:
+      base: nodejs@22
+      prepareCommands:
+        - corepack enable
+        - corepack prepare pnpm@10.14.0 --activate
+      ports:
+        - port: 3000
+          httpSupport: true
+      initCommands:
+        - pnpm install --prod --frozen-lockfile
+        - pnpm prisma migrate deploy
+      start: pnpm start
+      envVariables:
+        NODE_ENV: production
+        DATABASE_URL: ${db_connectionString}
